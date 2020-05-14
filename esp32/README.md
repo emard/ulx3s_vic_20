@@ -45,6 +45,15 @@ char, basic and kernal ROMs can be converted to PRG in similar way
     echo -ne "\x00\xE0" > e000.prg
     cat e000.prg kernal.901486-07.bin     > kernal.901486-07.prg
 
+# PRG fixer
+
+If loaded PRG after RUN prints "UNDEF'D STATEMENT" and
+after LIST it looks too short (one line), then it
+probably needs relocating of line end pointers to make
+them match PRG loading address. Script
+[prgfixer.py](/esp32/cmdline/prgfixer.py) can fix it.
+
+
 # LOAD *.vsf file
 
 VSF is VICE eumulator snapshot file.
