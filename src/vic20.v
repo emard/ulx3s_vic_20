@@ -52,32 +52,22 @@ module vic20
    // ===============================================================
    // System Clock generation (25MHz)
    // ===============================================================
-   wire clk_vga, clk_dvi, locked;
-
-   generate
-
-   // NTSC 60 Hz
-   if(pal == 0)
-   clk_ntsc
-   clk_ntsc_inst
+   wire locked;
+   wire [3:0] clocks;
+   ecp5pll
+   #(
+     .in_hz  (          25*1000000),
+     .out0_hz(5*(25+2*pal)*1000000), // 125 MHz NTSC, 135 MHz PAL
+     .out1_hz(  (25+2*pal)*1000000)  //  25 MHz NTSC,  27 MHz PAL
+   )
+   ecp5pll_inst
    (
-     .clkin(clk25_mhz),
-     .clkout0(clk_dvi), // 125
-     .clkout1(clk_vga), // 25
+     .clk_i(clk25_mhz),
+     .clk_o(clocks),
      .locked(locked)
    );
-
-   // PAL 50 Hz
-   if(pal == 1)
-   clk_pal
-   clk_pal_inst
-   (
-     .clkin(clk25_mhz),
-     .clkout0(clk_dvi), // 135
-     .clkout1(clk_vga), // 27
-     .locked(locked)
-   );
-   endgenerate
+   wire clk_dvi = clocks[0];
+   wire clk_vga = clocks[1];
 
    // ===============================================================
    // Wires/Reg definitions
@@ -594,6 +584,7 @@ module vic20
      .c_start_x(62), .c_start_y(80),
      .c_chars_x(64), .c_chars_y(20),
      .c_init_on(0),
+     .c_transparency(1),
      .c_char_file("osd.mem"),
      .c_font_file("font_bizcat8x16.mem")
    )
