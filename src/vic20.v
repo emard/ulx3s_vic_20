@@ -36,6 +36,12 @@ module vic20
   output        wifi_gpio0,
   inout         sd_clk, sd_cmd,
   inout   [3:0] sd_d,
+  // LCD/OLED SPI MINI-DISPLAY
+  output        oled_clk,
+  output        oled_mosi,
+  output        oled_dc,
+  output        oled_resn,
+  output        oled_csn,
   // Leds
   output [7:0]  leds,
   output reg [15:0] diag
@@ -581,10 +587,10 @@ module vic20
    wire osd_vga_hsync, osd_vga_vsync, osd_vga_blank;
    spi_osd
    #(
-     .c_start_x(62),    .c_start_y(80),
+     .c_start_x(80),    .c_start_y(80),
      .c_char_bits_x(6), .c_chars_y(20),
      .c_init_on(0),
-     .c_transparency(1),
+     .c_transparency(0),
      .c_char_file("osd.mem"),
      .c_font_file("font_bizcat8x16.mem")
    )
@@ -614,6 +620,80 @@ module vic20
      .gpdi_dp(gpdi_dp),
      .gpdi_dn(gpdi_dn)
    );
+
+   // ===============================================================
+   // LCD ST7789
+   // ===============================================================
+   wire [15:0] lcd_color;
+   assign lcd_color[15:11] = osd_vga_r[7:2];
+   assign lcd_color[10:5]  = osd_vga_g[7:1];
+   assign lcd_color[4:0]   = osd_vga_b[7:2];
+
+   // every 2nd pixel, every 2nd scanline
+   reg [1:0] hsyncedge;
+   reg lcd_line_ena, lcd_pixel_ena;
+   always @(posedge clk_vga)
+   begin
+     hsyncedge <= {osd_vga_hsync, hsyncedge[1]};
+     lcd_line_ena <= hsyncedge == 2'b10 ? ~lcd_line_ena : lcd_line_ena;
+     lcd_pixel_ena <= lcd_line_ena ? ~lcd_pixel_ena : 0;
+   end
+
+   // XY centering
+   localparam c_offset_x = 37; // inc -> move picture left
+   localparam c_offset_y =  6; // inc -> move picture down
+   wire custom_blankn;
+   osd
+   #(
+     .c_x_start(c_offset_x),
+     .c_x_stop(c_offset_x+240+2), // should be few pixels more, not displayed
+     .c_y_start(c_offset_y),
+     .c_y_stop(c_offset_y+240+2), // should be few pixels more, not displayed
+     .c_x_bits(10),
+     .c_y_bits(10),
+     .c_transparency(0)
+   )
+   osd_custom_blank_inst
+   (
+     .clk_pixel(clk_vga),
+     .clk_pixel_ena(lcd_pixel_ena),
+     .i_hsync(osd_vga_hsync),
+     .i_vsync(osd_vga_vsync),
+     .i_blank(osd_vga_blank),
+     .i_osd_en(0),
+     .o_osd_en(custom_blankn)
+   );
+   wire custom_blank = ~custom_blankn;
+
+   lcd_video
+   #(
+     .c_clk_spi_mhz(5*(25+2*pal)),
+     .c_vga_sync(1),
+     .c_clk_phase(0),
+     .c_clk_polarity(1),
+     .c_x_size(240),
+     .c_y_size(240),
+     .c_init_file("st7789_linit.mem"),
+     .c_init_size(38)
+   )
+   lcd_video_inst
+   (
+     .reset(~btn[0]),
+     .clk_pixel(clk_vga),
+     .clk_pixel_ena(lcd_pixel_ena),
+     .clk_spi(clk_dvi),
+     .clk_spi_ena(1),
+     .hsync(0), // not used
+     .vsync(osd_vga_vsync),
+     .blank(custom_blank),
+     .color(lcd_color),
+     .spi_clk(oled_clk),
+     .spi_mosi(oled_mosi),
+     .spi_dc(oled_dc),
+     .spi_resn(oled_resn),
+     .spi_csn()
+   );
+   assign oled_csn=1; // 7-pin ST7789 (oled_csn is backlight enable)
 
    // ===============================================================
    // LEDs
