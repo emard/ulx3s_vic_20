@@ -581,8 +581,8 @@ module vic20
    wire osd_vga_hsync, osd_vga_vsync, osd_vga_blank;
    spi_osd
    #(
-     .c_start_x(62), .c_start_y(80),
-     .c_chars_x(64), .c_chars_y(20),
+     .c_start_x(62),    .c_start_y(80),
+     .c_char_bits_x(6), .c_chars_y(20),
      .c_init_on(0),
      .c_transparency(1),
      .c_char_file("osd.mem"),
