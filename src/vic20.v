@@ -590,7 +590,7 @@ module vic20
      .c_start_x(80),    .c_start_y(80),
      .c_char_bits_x(6), .c_chars_y(20),
      .c_init_on(0),
-     .c_transparency(0),
+     .c_transparency(1),
      .c_char_file("osd.mem"),
      .c_font_file("font_bizcat8x16.mem")
    )
@@ -625,9 +625,9 @@ module vic20
    // LCD ST7789
    // ===============================================================
    wire [15:0] lcd_color;
-   assign lcd_color[15:11] = osd_vga_r[7:2];
-   assign lcd_color[10:5]  = osd_vga_g[7:1];
-   assign lcd_color[4:0]   = osd_vga_b[7:2];
+   assign lcd_color[15:11] = osd_vga_r[7:3];
+   assign lcd_color[10:5]  = osd_vga_g[7:2];
+   assign lcd_color[4:0]   = osd_vga_b[7:3];
 
    // every 2nd pixel, every 2nd scanline
    reg [1:0] hsyncedge;
